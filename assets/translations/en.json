@@ -1,5 +1,6 @@
 {
   "shared": {
+    "next": "Next",
     "get_started": "Get Started"
   },
   "onboarding": {
