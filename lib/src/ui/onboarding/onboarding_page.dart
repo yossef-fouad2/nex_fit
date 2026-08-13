@@ -1,7 +1,46 @@
+import 'dart:math' as math;
+
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:nex_fit/src/imports/imports.dart';
 
 import 'liquid_page.dart';
 import 'wave_painter.dart';
+
+// ── Onboarding Page Gradient Definitions ────────────────────────────────────
+
+/// Each page's gradient stop-colors. Dark, gym-energy palettes.
+const _kPageGradients = [
+  // Page 1 – Deep indigo → electric blue (power / strength)
+  [Color(0xFF0D0D2B), Color(0xFF1A1A6E), Color(0xFF2563EB)],
+  // Page 2 – Dark charcoal → vivid coral-orange (energy / heat)
+  [Color(0xFF1A0A00), Color(0xFF7C2D12), Color(0xFFEA580C)],
+  // Page 3 – Deep teal → electric mint (recovery / refresh)
+  [Color(0xFF011F1F), Color(0xFF065F46), Color(0xFF10B981)],
+];
+
+/// Text colors (high contrast on dark gradients).
+const _kPageTextColors = [
+  Colors.white,
+  Colors.white,
+  Colors.white,
+];
+
+/// Accent colors used in the page indicator and button gradient.
+const _kPageAccents = [
+  Color(0xFF2563EB),
+  Color(0xFFEA580C),
+  Color(0xFF10B981),
+];
+
+/// Dark companion shades for the button gradient (left stop).
+const _kPageAccentsDark = [
+  Color(0xFF1E3A8A),
+  Color(0xFF9A3412),
+  Color(0xFF065F46),
+];
+
+// ── Main Widget ─────────────────────────────────────────────────────────────
 
 class OnboardingPage extends HookWidget {
   const OnboardingPage({super.key});
@@ -15,29 +54,70 @@ class OnboardingPage extends HookWidget {
     final pageController = usePageController();
     final currentIndex = useState(0);
 
-    // Page data with distinct container colors so liquid wave clipping is visible
+    // ── Wave ripple controller ──────────────────────────────────────────────
+    final wavePhaseController = useAnimationController(
+      duration: const Duration(milliseconds: 2500),
+    );
+
+    // ── Text entrance controller ────────────────────────────────────────────
+    final textEntranceController = useAnimationController(
+      duration: const Duration(milliseconds: 500),
+    )..forward(from: 0);
+
+    useEffect(() {
+      textEntranceController.forward(from: 0);
+      return null;
+    }, [currentIndex.value]);
+
+    // ── Floating particle controller ────────────────────────────────────────
+    final particleController = useAnimationController(
+      duration: const Duration(milliseconds: 8000),
+    )..repeat();
+
+    // ── Loading state for Get Started morph ────────────────────────────────
+    final isLoading = useState(false);
+
+    // Page data
     final List<Map<String, dynamic>> onboardingData = useMemoized(() => [
           {
             'title': 'onboarding.onboarding_title_1'.tr(),
             'subtitle': 'onboarding.onboarding_subtitle_1'.tr(),
-            'pageWidget': const FlutterLogo(size: 200),
-            'color': colorScheme.primaryContainer,
+            'pageWidget': Lottie.asset(AppAssets.squatAnimation, repeat: true),
+            'gradients': _kPageGradients[0],
+            'accent': _kPageAccents[0],
+            'accentDark': _kPageAccentsDark[0],
           },
           {
             'title': 'onboarding.onboarding_title_2'.tr(),
             'subtitle': 'onboarding.onboarding_subtitle_2'.tr(),
-            'pageWidget': const FlutterLogo(size: 200),
-            'color': colorScheme.secondaryContainer,
+            'pageWidget':
+                Lottie.asset(AppAssets.gymDumbbellAnimation, repeat: true),
+            'gradients': _kPageGradients[1],
+            'accent': _kPageAccents[1],
+            'accentDark': _kPageAccentsDark[1],
           },
           {
             'title': 'onboarding.onboarding_title_3'.tr(),
             'subtitle': 'onboarding.onboarding_subtitle_3'.tr(),
-            'pageWidget': const FlutterLogo(size: 200),
-            'color': colorScheme.tertiaryContainer,
+            'pageWidget':
+                Lottie.asset(AppAssets.scheduleAnimation, repeat: true),
+            'gradients': _kPageGradients[2],
+            'accent': _kPageAccents[2],
+            'accentDark': _kPageAccentsDark[2],
           },
         ]);
 
     void onGetStarted() {
+      if (isLoading.value) return;
+      isLoading.value = true;
+      // Navigate after the morph animation settles
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        appRouter.pushReplacement(AppRoutes.login);
+      });
+    }
+
+    void onSkip() {
+      HapticFeedback.lightImpact();
       appRouter.pushReplacement(AppRoutes.login);
     }
 
@@ -48,11 +128,21 @@ class OnboardingPage extends HookWidget {
       pageController: pageController,
       currentIndex: currentIndex.value,
       onboardingData: onboardingData,
-      onPageChanged: (index) => currentIndex.value = index,
+      onPageChanged: (index) {
+        currentIndex.value = index;
+        HapticFeedback.selectionClick();
+      },
       onGetStarted: onGetStarted,
+      onSkip: onSkip,
+      isLoading: isLoading.value,
+      wavePhaseController: wavePhaseController,
+      textEntranceController: textEntranceController,
+      particleController: particleController,
     );
   }
 }
+
+// ── View ─────────────────────────────────────────────────────────────────────
 
 class _OnboardingView extends StatelessWidget {
   const _OnboardingView({
@@ -64,6 +154,11 @@ class _OnboardingView extends StatelessWidget {
     required this.onboardingData,
     required this.onPageChanged,
     required this.onGetStarted,
+    required this.onSkip,
+    required this.isLoading,
+    required this.wavePhaseController,
+    required this.textEntranceController,
+    required this.particleController,
   });
 
   final ThemeData theme;
@@ -74,76 +169,89 @@ class _OnboardingView extends StatelessWidget {
   final List<Map<String, dynamic>> onboardingData;
   final ValueChanged<int> onPageChanged;
   final VoidCallback onGetStarted;
+  final VoidCallback onSkip;
+  final bool isLoading;
+  final AnimationController wavePhaseController;
+  final AnimationController textEntranceController;
+  final AnimationController particleController;
 
-  /// Helper building full-screen content for a given page index.
-  Widget _buildPageContent(int index) {
+  Color _accent(int index) =>
+      onboardingData[index.clamp(0, onboardingData.length - 1)]['accent']
+          as Color;
+
+  Color _accentDark(int index) =>
+      onboardingData[index.clamp(0, onboardingData.length - 1)]['accentDark']
+          as Color;
+
+  Widget _buildPageContent(int index, {double parallaxOffset = 0.0}) {
     final safeIndex = index.clamp(0, onboardingData.length - 1);
     final data = onboardingData[safeIndex];
+    final gradients = data['gradients'] as List<Color>;
 
-    return ColoredBox(
-      color: data['color'] as Color,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradients,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
       child: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Top branding title
-            Padding(
-              padding: EdgeInsets.only(
-                top: AppSpacing.lg.h,
-                bottom: AppSpacing.md.h,
-              ),
-              child: Text(
-                'NexFit',
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: colorScheme.onSurface,
-                  fontSize: 22.sp,
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: particleController,
+                builder: (_, __) => CustomPaint(
+                  painter: _ParticlePainter(
+                    progress: particleController.value,
+                    color: gradients.last,
+                  ),
                 ),
               ),
             ),
-
-            // Dynamic Illustration Section
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg.w,
+            Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: AppSpacing.lg.h,
+                    bottom: AppSpacing.md.h,
                   ),
-                  child: data['pageWidget'] as Widget,
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [Colors.white, gradients.last],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Nex Fit',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontSize: 22.sp,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-            // Text Section
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl.w,
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    data['title'] as String,
-                    textAlign: TextAlign.center,
-                    style: textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                      height: 1.2,
-                      fontSize: 24.sp,
+                Expanded(
+                  child: Transform.translate(
+                    offset: Offset(parallaxOffset * 60.0, 0),
+                    child: Center(
+                      child: SizedBox(
+                        height: 0.42.sh,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg.w,
+                          ),
+                          child: data['pageWidget'] as Widget,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: AppSpacing.md.h),
-                  Text(
-                    data['subtitle'] as String,
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      height: 1.5,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(height: 130.h),
+              ],
             ),
-            SizedBox(height: 120.h),
           ],
         ),
       ),
@@ -153,48 +261,61 @@ class _OnboardingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLastPage = currentIndex == onboardingData.length - 1;
+    final currentAccent = _accent(currentIndex);
+    final currentAccentDark = _accentDark(currentIndex);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // ── LAYER 1: Liquid Page Reveal Transition Stack ─────────────────
-          // AnimatedBuilder listens to PageController scroll changes.
-          // Updates on every frame during user drag gestures.
+          // LAYER 1: Liquid wave transition stack
           AnimatedBuilder(
-            animation: pageController,
+            animation: Listenable.merge([pageController, wavePhaseController]),
             builder: (context, _) {
               final page = pageController.hasClients
                   ? (pageController.page ?? 0.0)
                   : 0.0;
-
               final baseIndex = page.floor();
               final fraction = page - baseIndex;
-              final nextIndex = (baseIndex + 1).clamp(0, onboardingData.length - 1);
+              final nextIndex =
+                  (baseIndex + 1).clamp(0, onboardingData.length - 1);
+
+              if (fraction > 0.005 && fraction < 0.995) {
+                if (!wavePhaseController.isAnimating) {
+                  wavePhaseController.repeat();
+                }
+              } else {
+                if (wavePhaseController.isAnimating) {
+                  wavePhaseController.stop();
+                }
+              }
+
+              final phase = wavePhaseController.value;
+              final nextParallax = -(1.0 - fraction) * 0.4;
+              final baseParallax = fraction * 0.4;
 
               return Stack(
                 children: [
-                  // Bottom Layer: Next Page (revealed underneath)
                   Positioned.fill(
-                    child: _buildPageContent(nextIndex),
+                    child: _buildPageContent(nextIndex,
+                        parallaxOffset: nextParallax),
                   ),
-
-                  // Top Layer: Current Page (clipped by WaveClipper)
                   Positioned.fill(
                     child: LiquidPage(
                       progress: fraction,
-                      child: _buildPageContent(baseIndex),
+                      phase: phase,
+                      child: _buildPageContent(baseIndex,
+                          parallaxOffset: baseParallax),
                     ),
                   ),
-
-                  // Wave Edge Shadow Overlay (minimal subtle depth)
                   Positioned.fill(
                     child: CustomPaint(
                       painter: WavePainter(
                         progress: fraction,
-                        shadowColor: Colors.black.withValues(alpha: 0.04),
-                        shadowBlurRadius: 1,
-                        shadowWidth: 1,
+                        phase: phase,
+                        shadowColor: Colors.black.withValues(alpha: 0.18),
+                        shadowBlurRadius: 5,
+                        shadowWidth: 3,
                       ),
                     ),
                   ),
@@ -203,7 +324,7 @@ class _OnboardingView extends StatelessWidget {
             },
           ),
 
-          // ── LAYER 2: Invisible PageView for touch & drag physics ─────────
+          // LAYER 2: Invisible PageView for drag physics
           PageView.builder(
             controller: pageController,
             itemCount: onboardingData.length,
@@ -211,36 +332,171 @@ class _OnboardingView extends StatelessWidget {
             itemBuilder: (_, __) => const SizedBox.shrink(),
           ),
 
-          // ── LAYER 3: Fixed Bottom Controls (Button & Navigation) ─────────
+          // LAYER 3: Skip button
+          if (!isLastPage && !isLoading)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg.w,
+                    vertical: AppSpacing.sm.h,
+                  ),
+                  child: TextButton(
+                    onPressed: onSkip,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white.withValues(alpha: 0.70),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                    child: Text(
+                      'Skip',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // LAYER 4: Staggered text entrance overlay
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 130.h,
+            child: AnimatedBuilder(
+              animation: textEntranceController,
+              builder: (context, _) {
+                final t = textEntranceController.value;
+                final titleCurve =
+                    Curves.easeOutCubic.transform(t.clamp(0.0, 1.0));
+                final subtitleCurve = Curves.easeOutCubic
+                    .transform(((t - 0.15) / 0.85).clamp(0.0, 1.0));
+                final safeIndex =
+                    currentIndex.clamp(0, onboardingData.length - 1);
+                final data = onboardingData[safeIndex];
+                final textColor = _kPageTextColors[safeIndex];
+
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl.w),
+                  child: Column(
+                    children: [
+                      Opacity(
+                        opacity: titleCurve,
+                        child: Transform.translate(
+                          offset: Offset(0, 24.0 * (1.0 - titleCurve)),
+                          child: Text(
+                            data['title'] as String,
+                            textAlign: TextAlign.center,
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: textColor,
+                              height: 1.15,
+                              fontSize: 36.sp,
+                              letterSpacing: -0.5,
+                              fontFamily: GoogleFonts.anybody(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                              ).fontFamily,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.md.h),
+                      Opacity(
+                        opacity: subtitleCurve,
+                        child: Transform.translate(
+                          offset: Offset(0, 24.0 * (1.0 - subtitleCurve)),
+                          child: Text(
+                            data['subtitle'] as String,
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: textColor.withValues(alpha: 0.90),
+                              height: 1.6,
+                              fontSize: 14.sp,
+                              fontFamily: GoogleFonts.anybody().fontFamily,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // LAYER 5: Fixed bottom controls
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(AppSpacing.xl.w),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppButton(
-                      label: isLastPage
-                          ? 'shared.get_started'.tr()
-                          : 'shared.next'.tr(),
-                      onPressed: () {
-                        if (isLastPage) {
-                          onGetStarted();
-                        } else {
-                          pageController.nextPage(
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeInOutCubic,
-                          );
-                        }
-                      },
-                      variant: ButtonVariant.primary,
-                      width: ButtonSize.medium,
-                    ),
-                    SizedBox(height: AppSpacing.md.h),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.25, 1.0],
+                  colors: [
+                    Colors.black.withValues(alpha: 0),
+                    Colors.black.withValues(alpha: 0.70),
+                    Colors.black.withValues(alpha: 0.92),
                   ],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.xl.w,
+                    AppSpacing.md.h,
+                    AppSpacing.xl.w,
+                    AppSpacing.lg.h,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Page indicator fades out during loading morph
+                      AnimatedOpacity(
+                        duration: AppDurations.normal,
+                        opacity: isLoading ? 0.0 : 1.0,
+                        child: SmoothPageIndicator(
+                          controller: pageController,
+                          count: onboardingData.length,
+                          effect: ExpandingDotsEffect(
+                            dotHeight: 8.h,
+                            dotWidth: 8.w,
+                            expansionFactor: 3.5,
+                            spacing: 6.w,
+                            activeDotColor: currentAccent,
+                            dotColor: Colors.white.withValues(alpha: 0.30),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.lg.h),
+
+                      // Bespoke onboarding button
+                      _OnboardingButton(
+                        isLastPage: isLastPage,
+                        isLoading: isLoading,
+                        accent: currentAccent,
+                        accentDark: currentAccentDark,
+                        onPressed: () {
+                          if (isLastPage) {
+                            onGetStarted();
+                          } else {
+                            pageController.nextPage(
+                              duration: AppDurations.medium,
+                              curve: Curves.easeOutCubic,
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -249,4 +505,182 @@ class _OnboardingView extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Bespoke Onboarding Button ────────────────────────────────────────────────
+
+/// A purpose-built button for the onboarding screen only.
+///
+/// Behaviour:
+/// - Full-width pill with a horizontal gradient (page-accent colours).
+/// - `AnimatedScale(0.97)` on press at 140 ms `easeOutCubic` (Emil: buttons
+///   must feel responsive to press).
+/// - When [isLastPage] and tapped, [isLoading] becomes true:
+///   - `AnimatedContainer` contracts width from full → a square (circle)
+///     in 400 ms `easeOutCubic`.
+///   - `AnimatedSwitcher` crossfades label → spinner (220 ms).
+///   - After 1.2 s the caller navigates to auth.
+class _OnboardingButton extends HookWidget {
+  const _OnboardingButton({
+    required this.isLastPage,
+    required this.isLoading,
+    required this.accent,
+    required this.accentDark,
+    required this.onPressed,
+  });
+
+  final bool isLastPage;
+  final bool isLoading;
+  final Color accent;
+  final Color accentDark;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPressed = useState(false);
+    final buttonH = 56.h;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fullWidth = constraints.maxWidth;
+
+        return GestureDetector(
+          onTapDown: (_) {
+            if (!isLoading) isPressed.value = true;
+          },
+          onTapUp: (_) {
+            isPressed.value = false;
+            if (!isLoading) onPressed();
+          },
+          onTapCancel: () => isPressed.value = false,
+          child: AnimatedScale(
+            scale: isPressed.value ? 0.97 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              // Width morphs: full-width → circle height (square) when loading
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              width: isLoading ? buttonH : fullWidth,
+              height: buttonH,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [accentDark, accent],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            // Corner radius: pill (full) while wide, circle when contracted
+            borderRadius: BorderRadius.circular(isLoading ? buttonH / 2 : 16),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.38),
+                blurRadius: 22,
+                spreadRadius: -2,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius:
+                BorderRadius.circular(isLoading ? buttonH / 2 : 16),
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+                child: isLoading
+                    ? SizedBox(
+                        key: const ValueKey('spinner'),
+                        width: 24.w,
+                        height: 24.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Padding(
+                        key: const ValueKey('label'),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isLastPage
+                                    ? 'shared.get_started'.tr()
+                                    : 'shared.next'.tr(),
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              if (!isLastPage) ...[
+                                SizedBox(width: 8.w),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+);
+  }
+}
+
+// ── Floating Particle Painter ────────────────────────────────────────────────
+
+class _ParticlePainter extends CustomPainter {
+  _ParticlePainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  static const _particles = [
+    (dx: 0.15, dy: 0.20, r: 60.0, speed: 0.30, phase: 0.00),
+    (dx: 0.80, dy: 0.10, r: 40.0, speed: 0.20, phase: 0.25),
+    (dx: 0.65, dy: 0.55, r: 80.0, speed: 0.15, phase: 0.50),
+    (dx: 0.30, dy: 0.75, r: 50.0, speed: 0.25, phase: 0.75),
+    (dx: 0.90, dy: 0.80, r: 35.0, speed: 0.35, phase: 0.10),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in _particles) {
+      final t = (progress * p.speed + p.phase) % 1.0;
+      final dy = size.height * p.dy +
+          math.sin(t * 2 * math.pi) * size.height * 0.04;
+      final dx = size.width * p.dx;
+      final opacity = 0.06 + 0.04 * math.sin(t * math.pi);
+
+      final paint = Paint()
+        ..color = color.withValues(alpha: opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30);
+
+      canvas.drawCircle(Offset(dx, dy), p.r, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

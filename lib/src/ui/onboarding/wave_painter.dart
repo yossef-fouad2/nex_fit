@@ -6,13 +6,17 @@ import 'wave_clipper.dart';
 class WavePainter extends CustomPainter {
   const WavePainter({
     required this.progress,
-    this.shadowColor = const Color(0x0A000000),
-    this.shadowBlurRadius = 1.0,
-    this.shadowWidth = 1.0,
+    this.phase = 0.0,
+    this.shadowColor = const Color(0x1E000000),
+    this.shadowBlurRadius = 4.0,
+    this.shadowWidth = 2.5,
   });
 
   /// Transition progress (0.0 to 1.0) synced with [WaveClipper].
   final double progress;
+
+  /// Looping ripple phase — must match the value passed to [WaveClipper].
+  final double phase;
 
   /// Color of the soft ambient shadow.
   final Color shadowColor;
@@ -28,7 +32,7 @@ class WavePainter extends CustomPainter {
     // Hide shadow at transition endpoints
     if (progress <= 0.001 || progress >= 0.999) return;
 
-    final path = WaveClipper.buildWavePath(size, progress);
+    final path = WaveClipper.buildWavePath(size, progress, phase: phase);
 
     // Soft dark shadow stroke along the wave edge for depth
     final shadowPaint = Paint()
@@ -43,6 +47,7 @@ class WavePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant WavePainter oldDelegate) {
     return oldDelegate.progress != progress ||
+        oldDelegate.phase != phase ||
         oldDelegate.shadowColor != shadowColor ||
         oldDelegate.shadowBlurRadius != shadowBlurRadius ||
         oldDelegate.shadowWidth != shadowWidth;
