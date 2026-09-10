@@ -8,6 +8,7 @@ import 'package:nex_fit/src/ui/auth/forgot_password_screen.dart';
 
 import 'package:nex_fit/src/ui/home/home_page.dart';
 import 'package:nex_fit/src/ui/onboarding/onboarding_page.dart';
+import 'package:nex_fit/src/ui/pick_me/pick_me_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
@@ -31,12 +32,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPassword,
       name: 'forgotPassword',
-      builder: (context, state) => const ForgotPasswordScreen(),
+      builder: (context, state) => const PickMeScreen(),
     ),
     GoRoute(
       path: AppRoutes.home,
       name: 'home',
       builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.pickme,
+      name: 'pickMe',
+      builder: (context, state) => const PickMeScreen(),
     ),
   ],
 );

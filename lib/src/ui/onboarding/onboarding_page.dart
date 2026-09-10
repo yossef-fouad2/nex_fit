@@ -479,8 +479,17 @@ class _OnboardingView extends StatelessWidget {
                       SizedBox(height: AppSpacing.lg.h),
 
                       // Bespoke onboarding button
-                      _OnboardingButton(
-                        isLastPage: isLastPage,
+                      AppGradientButton(
+                        label: isLastPage
+                            ? 'shared.get_started'.tr()
+                            : 'shared.next'.tr(),
+                        trailingIcon: isLastPage
+                            ? null
+                            : const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                         isLoading: isLoading,
                         accent: currentAccent,
                         accentDark: currentAccentDark,
@@ -504,146 +513,6 @@ class _OnboardingView extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// ── Bespoke Onboarding Button ────────────────────────────────────────────────
-
-/// A purpose-built button for the onboarding screen only.
-///
-/// Behaviour:
-/// - Full-width pill with a horizontal gradient (page-accent colours).
-/// - `AnimatedScale(0.97)` on press at 140 ms `easeOutCubic` (Emil: buttons
-///   must feel responsive to press).
-/// - When [isLastPage] and tapped, [isLoading] becomes true:
-///   - `AnimatedContainer` contracts width from full → a square (circle)
-///     in 400 ms `easeOutCubic`.
-///   - `AnimatedSwitcher` crossfades label → spinner (220 ms).
-///   - After 1.2 s the caller navigates to auth.
-class _OnboardingButton extends HookWidget {
-  const _OnboardingButton({
-    required this.isLastPage,
-    required this.isLoading,
-    required this.accent,
-    required this.accentDark,
-    required this.onPressed,
-  });
-
-  final bool isLastPage;
-  final bool isLoading;
-  final Color accent;
-  final Color accentDark;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPressed = useState(false);
-    final buttonH = 56.h;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final fullWidth = constraints.maxWidth;
-
-        return GestureDetector(
-          onTapDown: (_) {
-            if (!isLoading) isPressed.value = true;
-          },
-          onTapUp: (_) {
-            isPressed.value = false;
-            if (!isLoading) onPressed();
-          },
-          onTapCancel: () => isPressed.value = false,
-          child: AnimatedScale(
-            scale: isPressed.value ? 0.97 : 1.0,
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              // Width morphs: full-width → circle height (square) when loading
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
-              width: isLoading ? buttonH : fullWidth,
-              height: buttonH,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [accentDark, accent],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            // Corner radius: pill (full) while wide, circle when contracted
-            borderRadius: BorderRadius.circular(isLoading ? buttonH / 2 : 16),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.38),
-                blurRadius: 22,
-                spreadRadius: -2,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius:
-                BorderRadius.circular(isLoading ? buttonH / 2 : 16),
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: isLoading
-                    ? SizedBox(
-                        key: const ValueKey('spinner'),
-                        width: 24.w,
-                        height: 24.h,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Padding(
-                        key: const ValueKey('label'),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isLastPage
-                                    ? 'shared.get_started'.tr()
-                                    : 'shared.next'.tr(),
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              if (!isLastPage) ...[
-                                SizedBox(width: 8.w),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  },
-);
   }
 }
 

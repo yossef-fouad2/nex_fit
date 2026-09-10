@@ -10,7 +10,8 @@ export 'package:flutter_svg/flutter_svg.dart';
 export 'package:hugeicons/hugeicons.dart';
 export 'package:skeletonizer/skeletonizer.dart';
 export 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
-export 'package:smooth_page_indicator/smooth_page_indicator.dart' hide ScaleEffect, SlideEffect, SwapEffect;
+export 'package:smooth_page_indicator/smooth_page_indicator.dart'
+    hide ScaleEffect, SlideEffect, SwapEffect;
 export 'package:flutter_dotenv/flutter_dotenv.dart';
 export 'package:shared_preferences/shared_preferences.dart';
 export 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -21,5 +22,3 @@ export 'package:url_launcher/url_launcher.dart';
 export 'package:permission_handler/permission_handler.dart';
 export 'package:device_info_plus/device_info_plus.dart';
 export 'package:app_version_update/app_version_update.dart';
-
-
