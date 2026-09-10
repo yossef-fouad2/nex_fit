@@ -111,7 +111,7 @@ class OnboardingPage extends HookWidget {
       if (isLoading.value) return;
       isLoading.value = true;
       // Navigate after the morph animation settles
-      Future.delayed(const Duration(milliseconds: 1200), () {
+      Future.delayed(const Duration(milliseconds: 800), () {
         appRouter.pushReplacement(AppRoutes.login);
       });
     }
@@ -536,8 +536,8 @@ class _ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final p in _particles) {
       final t = (progress * p.speed + p.phase) % 1.0;
-      final dy = size.height * p.dy +
-          math.sin(t * 2 * math.pi) * size.height * 0.04;
+      final dy =
+          size.height * p.dy + math.sin(t * 2 * math.pi) * size.height * 0.04;
       final dx = size.width * p.dx;
       final opacity = 0.06 + 0.04 * math.sin(t * math.pi);
 

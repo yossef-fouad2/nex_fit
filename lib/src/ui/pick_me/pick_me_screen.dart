@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:nex_fit/src/imports/core_imports.dart';
 import 'package:nex_fit/src/imports/imports.dart';
 import 'package:nex_fit/src/services/location_service.dart';
 
@@ -17,18 +14,15 @@ class PickMeScreen extends HookWidget {
             AppGradientButton(
                 label: 'Get my location',
                 onPressed: () async {
-                  final position = await getLocation();
-                  // position.longitude;
-
                   isLoading.value = true;
-
-                  // print(result);
+                  final position = await getLocation();
                   if (!context.mounted) return;
                   showToast(
                     context,
                     message:
                         'latitude: ${position.latitude}, longitude: ${position.longitude}',
                   );
+                  isLoading.value = false;
                 },
                 isLoading: isLoading.value,
                 accent: Colors.lightBlueAccent,
