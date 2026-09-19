@@ -1,14 +1,15 @@
 import 'package:geolocator/geolocator.dart';
-import 'package:nex_fit/src/imports/core_imports.dart';
-import 'package:nex_fit/src/shared/widgets/widgets.dart';
+import 'package:nex_fit/src/imports/imports.dart';
 
 Future<Position> getLocation() async {
   bool serviceEnabled;
   LocationPermission permission;
 
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    return Future.error('Location is not enabled');
+  try {
+    if (!serviceEnabled) {}
+  } on Exception catch (e) {
+    AppErrorHandler.format(e);
   }
 
   permission = await Geolocator.checkPermission();
@@ -25,11 +26,16 @@ Future<Position> getLocation() async {
         'Location permissions are permanently denied, we cannot request permissions.');
   }
   final position = await Geolocator.getCurrentPosition();
-  // ToastCard(
-  //   title: Text('Location'),
-  //   leading: Text('${position.longitude} : ${position.altitude}'),
-  // );
-  showGlobalToast(message: '${position.longitude} : ${position.altitude}');
+  // final SharedPreferences preferences = await SharedPreferences.getInstance();
+  //moved outside for decoupling and reusabilty
+  // await preferences.setDouble('lat', position.latitude);
+  // await preferences.setDouble('long', position.longitude);
   print('${position.latitude}: ${position.longitude}: ${position.accuracy}');
   return position;
+}
+
+Future<void> saveLocation(Position position) async {
+  final SharedPreferences preferences = await SharedPreferences.getInstance();
+  await preferences.setDouble('lat', position.latitude);
+  await preferences.setDouble('long', position.longitude);
 }
